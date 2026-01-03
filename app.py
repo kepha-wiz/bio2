@@ -1962,36 +1962,34 @@ def wikipedia_summary(query):
 @app.route('/library/ai-research', methods=['POST'])
 @login_required
 def library_ai_research():
-    query = request.json.get('query', '').strip()
+    query = request.json.get('query', '')
     if not query:
-        return jsonify({'response': 'Please enter a topic.'}), 400
+        return jsonify({'response': 'Please enter a research topic.'}), 400
 
-    # --- Try OpenAI first ---
     try:
-        prompt = f"""
-You are a helpful biology tutor. Explain this topic clearly in simple terms for students:
-"{query}"
-Keep it concise, accurate, and easy to understand.
-"""
-        completion = openai.Completion.create(
-            model="text-davinci-003",  # legacy text model, compatible with Free tier
-            prompt=prompt,
-            temperature=0.4,
-            max_tokens=400
+        # Configure the API with your hardcoded key
+        genai.configure(api_key="AIzaSyCBa2VooPyyMTJmeX7AYpF176qy01_iXpQ")
+
+        # Initialize the model (gemini-1.5-flash is fast and reliable)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        # Create a prompt with instructions
+        prompt = (
+            "Instruction: You are a helpful Biology teacher assistant for St. George's Biology Class. "
+            "Provide accurate, educational answers suitable for students.\n\n"
+            f"Student Question: {query}"
         )
-        ai_response = completion.choices[0].text.strip()
-        if ai_response:
-            return jsonify({'response': ai_response})
+
+        # Generate the response
+        response = model.generate_content(prompt)
+
+        # Return the text
+        return jsonify({'response': response.text})
+
     except Exception as e:
-        print("OpenAI error:", e)
-
-    # --- Fallback to Wikipedia ---
-    wiki_response = wikipedia_summary(query)
-    if wiki_response:
-        return jsonify({'response': wiki_response})
-
-    return jsonify({'response': "AI and Wikipedia lookup failed. Try a more general term."}), 500
-
+        app.logger.error(f"AI API Error: {str(e)}")
+        # Return a user-friendly error message
+        return jsonify({'response': 'Sorry, I am having trouble connecting to the AI brain right now. Please try again later.'}), 500
 
 @app.route('/library')
 @login_required
