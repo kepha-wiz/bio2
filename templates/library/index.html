@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Biology Research Lab{% endblock %}
+
+{# REMOVED bio_library.css link to match base.html Green theme #}
+
+{% block content %}
+{# REMOVED Bio-bg-animation div because base.html handles background #}
+
+{# CHANGED pt-5 to mt-3 to remove the huge blank space at the top #}
+<div class="container mt-3">
+    <div class="row">
+        
+        <!-- AI Research Sidebar -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm h-100" style="border-top: 4px solid var(--biology-green);">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-robot"></i> AI Research Assistant</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Ask AI to analyze biology topics, find resources, or summarize concepts.</p>
+                    
+                    <!-- Chat Box (White background for Green theme) -->
+                    <div class="bg-light border p-3 mb-3 rounded" style="height: 300px; overflow-y: auto;" id="ai-chat-history">
+                        <div class="alert alert-success d-inline-block">Hello! I am your Biology Research Assistant. How can I help you study today?</div>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="ai-query" placeholder="Ask about cells, genetics, etc...">
+                        <button class="btn btn-success" onclick="askAI()">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Library Grid -->
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0" style="color: var(--biology-dark-green);"><i class="bi bi-collection-play"></i> Resource Archive</h2>
+                <div>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('upload_library_resource') }}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-upload"></i> Upload New
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <form action="{{ url_for('library_index') }}" method="GET">
+                        <select name="category" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form action="{{ url_for('library_index') }}" method="GET">
+                         <input type="text" name="search" class="form-control" placeholder="Search titles..." value="{{ search }}">
+                    </form>
+                </div>
+            </div>
+
+            <!-- Grid -->
+            <div class="row g-4">
+                {% for resource in resources %}
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100 d-flex flex-column">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-secondary">{{ resource.category }}</span>
+                                {% if current_user.is_admin %}
+                                <form method="POST" action="{{ url_for('delete_library_resource', resource_id=resource.id) }}" class="d-inline" onsubmit="return confirm('Delete this resource?')">
+                                    <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <h5 class="card-title text-truncate" style="color: var(--biology-dark-green);">{{ resource.title }}</h5>
+                            <p class="card-text text-muted small text-truncate">{{ resource.description }}</p>
+                            
+                            <div class="mt-auto">
+                                <a href="{{ url_for('view_library_resource', resource_id=resource.id) }}" class="btn btn-success w-100">
+                                    <i class="bi bi-eye"></i> View in Lab
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not resources %}
+                <div class="col-12 text-center mt-5">
+                    <div class="alert alert-light border">
+                        <i class="bi bi-inbox text-muted fs-1 d-block mb-2"></i>
+                        <h5 class="text-muted">No resources found matching criteria.</h5>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function askAI() {
+    const queryInput = document.getElementById('ai-query');
+    const historyDiv = document.getElementById('ai-chat-history');
+    const query = queryInput.value.trim();
+
+    if (!query) return;
+
+    // Add User Message
+    historyDiv.innerHTML += `<div class="text-end mb-2"><span class="fw-bold">You:</span> ${query}</div><br>`;
+    queryInput.value = '';
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    // Add Loading
+    const loadingId = 'loading-' + Date.now();
+    historyDiv.innerHTML += `<div id="${loadingId}" class="text-muted small"><i class="spinner-border spinner-border-sm me-1"></i> AI is thinking...</div>`;
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    try {
+        const response = await fetch('/library/ai-research', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        });
+        const data = await response.json();
+        
+        // Remove loading and add AI response
+        document.getElementById(loadingId).remove();
+        // Using Green alert for AI message to match theme
+        historyDiv.innerHTML += `<div class="alert alert-success d-inline-block">${data.response}</div>`;
+    } catch (error) {
+        document.getElementById(loadingId).remove();
+        historyDiv.innerHTML += `<div class="alert alert-danger d-inline-block small">Error connecting to AI Core.</div>`;
+    }
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+}
+</script>
+{% endblock %}

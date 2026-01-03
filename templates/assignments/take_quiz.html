@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ quiz.title }} - St. George's Biology Class{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('courses_list') }}">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('course_detail', course_id=quiz.course.id) }}">{{ quiz.course.title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ quiz.title }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> {{ quiz.title }}</h5>
+                    <span class="badge bg-info">{{ quiz.total_points }} Points</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if quiz.description %}
+                <p class="text-muted mb-4">{{ quiz.description }}</p>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('take_quiz', quiz_id=quiz.id) }}">
+                    {% for question in questions %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title mb-3">
+                                <span class="badge bg-success me-2">Question {{ loop.index }}</span>
+                                <span class="badge bg-secondary">{{ question.points }} pts</span>
+                            </h6>
+                            <p class="card-text mb-3">{{ question.question_text }}</p>
+                            <div class="list-group">
+                                <label class="list-group-item list-group-item-action">
+                                    <input class="form-check-input me-2" type="radio" name="question_{{ question.id }}" value="A" required>
+                                    A. {{ question.option_a }}
+                                </label>
+                                <label class="list-group-item list-group-item-action">
+                                    <input class="form-check-input me-2" type="radio" name="question_{{ question.id }}" value="B" required>
+                                    B. {{ question.option_b }}
+                                </label>
+                                <label class="list-group-item list-group-item-action">
+                                    <input class="form-check-input me-2" type="radio" name="question_{{ question.id }}" value="C" required>
+                                    C. {{ question.option_c }}
+                                </label>
+                                <label class="list-group-item list-group-item-action">
+                                    <input class="form-check-input me-2" type="radio" name="question_{{ question.id }}" value="D" required>
+                                    D. {{ question.option_d }}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Submit Quiz
+                        </button>
+                        <a href="{{ url_for('course_detail', course_id=quiz.course.id) }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
