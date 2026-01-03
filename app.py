@@ -1,17 +1,29 @@
+
+
+This code is extremely messy and contains several fatal errors for Vercel deployment.
+
+**Key Issues Fixed:**
+1.  **Removed Proxy Lines:** The `os.environ['proxy']` lines at the top are deleted. **This was crashing your app on Vercel.**
+2.  **Fixed Imports:** Removed the duplicate imports and the crash-causing `from google import genai`.
+3.  **Cleaned AI Route:** Removed the unused OpenAI/Wikipedia code and strictly implemented the Gemini API with your hardcoded key.
+
+Here is the **fully cleaned `app.py`**. Replace your entire file with this code.
+
+```python
 """
 St. George's Biology Class - Learning Management System
 A Flask-based LMS for Biology education
 """
 import os
-os.environ['https_proxy'] = "http://proxy.server:3128"
-os.environ['http_proxy'] = "http://proxy.server:3128"
+import uuid
+import google.generativeai as genai
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 from datetime import datetime
-import os
-import uuid
 from functools import wraps
+
 # Import configuration and extensions
 from config import Config
 from extensions import db, login_manager
@@ -979,7 +991,7 @@ def editor_upload():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             file.save(filepath)
 
-            # Return the URL to the file
+            # Return URL to the file
             file_url = url_for('uploaded_file', filename=unique_filename)
             return jsonify({'location': file_url})
         except Exception as e:
@@ -1921,75 +1933,42 @@ def mark_notification_read(notification_id):
 
 # DIGITAL BIOLOGY LIBRARY
 
-import google.generativeai as genai
-from google.generativeai.types import RequestOptions
-
-import google.generativeai as genai
-
-from google import genai  # Note the new import style
-import requests
-import json
-
-import requests
-@app.route('/test-key')
-def test_key():
-    import os
-    key = os.getenv("OPENAI_API_KEY")
-    return "KEY LOADED ✅" if key else "KEY MISSING ❌"
-from flask import request, jsonify
-from flask_login import login_required
-import openai
-import os
-import requests
-
-# Set OpenAI key from WSGI environment
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# Wikipedia helper function
-def wikipedia_summary(query):
-    for variant in [query, query.title()]:
-        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{variant.replace(' ', '_')}"
-        try:
-            resp = requests.get(url, timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                if "extract" in data and data["extract"].strip():
-                    return data["extract"]
-        except Exception:
-            continue
-    return None
-
 @app.route('/library/ai-research', methods=['POST'])
 @login_required
 def library_ai_research():
+    """
+    Real AI Research Route using Google Generative AI (Gemini)
+    """
     query = request.json.get('query', '')
+
     if not query:
         return jsonify({'response': 'Please enter a research topic.'}), 400
 
     try:
-        # Configure the API with your hardcoded key
+        # Configure the API with the hardcoded key
         genai.configure(api_key="AIzaSyCBa2VooPyyMTJmeX7AYpF176qy01_iXpQ")
 
-        # Initialize the model (gemini-1.5-flash is fast and reliable)
+        # Initialize the model (gemini-1.5-flash is the text model)
         model = genai.GenerativeModel('gemini-1.5-flash')
 
-        # Create a prompt with instructions
+        # Add context to the query so the AI knows it's helping a Biology student
         prompt = (
             "Instruction: You are a helpful Biology teacher assistant for St. George's Biology Class. "
             "Provide accurate, educational answers suitable for students.\n\n"
             f"Student Question: {query}"
         )
 
-        # Generate the response
+        # Generate content
         response = model.generate_content(prompt)
 
-        # Return the text
+        # Return the text response to the frontend
         return jsonify({'response': response.text})
 
     except Exception as e:
         app.logger.error(f"AI API Error: {str(e)}")
-        # Return a user-friendly error message
+        # Return a generic error to the user
         return jsonify({'response': 'Sorry, I am having trouble connecting to the AI brain right now. Please try again later.'}), 500
+
 
 @app.route('/library')
 @login_required
@@ -2125,10 +2104,6 @@ def view_library_resource(resource_id):
     return render_template('library/viewer.html', resource=resource)
 
 
-from flask import send_from_directory, abort, make_response
-from werkzeug.utils import secure_filename
-import os
-
 @app.route('/library/files/<filename>')
 @login_required
 def serve_library_file(filename):
@@ -2227,3 +2202,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True, host='0.0.0.0', port=5000)
+```
