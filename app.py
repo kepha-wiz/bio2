@@ -1,19 +1,4 @@
 
-
-This code is extremely messy and contains several fatal errors for Vercel deployment.
-
-**Key Issues Fixed:**
-1.  **Removed Proxy Lines:** The `os.environ['proxy']` lines at the top are deleted. **This was crashing your app on Vercel.**
-2.  **Fixed Imports:** Removed the duplicate imports and the crash-causing `from google import genai`.
-3.  **Cleaned AI Route:** Removed the unused OpenAI/Wikipedia code and strictly implemented the Gemini API with your hardcoded key.
-
-Here is the **fully cleaned `app.py`**. Replace your entire file with this code.
-
-```python
-"""
-St. George's Biology Class - Learning Management System
-A Flask-based LMS for Biology education
-"""
 import os
 import uuid
 import google.generativeai as genai
@@ -2202,4 +2187,3 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True, host='0.0.0.0', port=5000)
-```
